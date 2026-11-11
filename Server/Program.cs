@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server.Classes;
+using System;
 using System.Net;
 
 namespace Server
@@ -9,10 +10,61 @@ namespace Server
         static int ServerPort;
         static int MaxClient;
         static int Duration;
+        static List<Client> AllClients = new List<Client>();
 
         static void Main(string[] args)
         {
 
+        }
+
+        static void SetCommand()
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            string Command = Console.ReadLine();
+
+            if (Command == "/config")
+            {
+                File.Delete(Directory.GetCurrentDirectory() + "/.config");
+                OnSettings();
+            }
+            else if (Command.Contains("/disconnect"))
+                DisconnectServer(Command);
+            else if (Command == "/status")
+                GetStatus();
+            else if (Command == "/help")
+                Help();
+        }
+
+        static void DisconnectServer(string command)
+        {
+            try
+            {
+                string Token = command.Replace("/disconnect", "");
+                Client DisconnectClient = AllClients.Find(x => x.Token == Token);
+                AllClients.Remove(DisconnectClient);
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Клиент: {Token} отключился от сервера");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Что-то пошло не так: " + ex.Message);
+            }
+        }
+
+        static void GetStatus()
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Количество клиентов: {AllClients.Count}");
+
+            foreach (Client Client in AllClients)
+            {
+                int Duration = (int)DateTime.Now.Subtract(Client.DataConnect).TotalSeconds;
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine($"Клиент: {Client.Token}, время подключения: {Client.DataConnect.ToString("HH:mm:ss dd.MM")}, " +
+                    $" продолжительность: {Duration}");
+            }
         }
 
         static void Help()
