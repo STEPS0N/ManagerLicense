@@ -5,14 +5,35 @@ namespace Server
 {
     class Program
     {
-        public static IPAddress ServerIpAddress;
-        public static int ServerPort;
-        public static int MaxClient;
-        public static int Duration;
+        static IPAddress ServerIpAddress;
+        static int ServerPort;
+        static int MaxClient;
+        static int Duration;
 
         static void Main(string[] args)
         {
 
+        }
+
+        static void Help()
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("Команды для сервера: ");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/config");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - задать первоначальные настройки");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/disconnect");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - отключить пользователей от сервера");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/status");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - показать список пользователей");
         }
 
         static void OnSettings()
