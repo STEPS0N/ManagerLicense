@@ -1,6 +1,8 @@
 ﻿using Server.Classes;
 using System;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Server
 {
@@ -14,7 +16,33 @@ namespace Server
 
         static void Main(string[] args)
         {
+            OnSettings();
 
+            Thread tListener = new Thread(ConnectServer);
+            tListener.Start();
+
+            Thread tDisconnect = new Thread(CheckDisconnectClient);
+            tDisconnect.Start();
+
+            while (true)
+                SetCommand();
+        }
+
+        static void CheckDisconnectClient()
+        {
+            while (true)
+            {
+                for (int iClient = 0; iClient < AllClients.Count; iClient++)
+                {
+                    int ClientDuration = (int)DateTime.Now.Subtract(AllClients[iClient].DataConnect).TotalSeconds;
+
+                    if (ClientDuration > Duration)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Клиент: {AllClients[iClient].Token} отключился от сервера из-за тайм-аута");
+                    }
+                }
+            }
         }
 
         static void SetCommand()
@@ -35,11 +63,62 @@ namespace Server
                 Help();
         }
 
+        static void ConnectServer()
+        {
+            IPEndPoint EndPoint = new IPEndPoint(ServerIpAddress, ServerPort);
+            Socket SocketListener = new Socket(
+                AddressFamily.InterNetwork,
+                SocketType.Stream,
+                ProtocolType.Tcp);
+            SocketListener.Bind(EndPoint);
+            SocketListener.Listen(10);
+
+            while (true)
+            {
+                Socket Handler = SocketListener.Accept();
+
+                byte[] Bytes = new byte[10485760];
+                int ByteRec = Handler.Receive(Bytes);
+
+                string Message = Encoding.UTF8.GetString(Bytes, 0, ByteRec);
+                string Response = SetCommandClient(Message);
+
+                Handler.Send(Encoding.UTF8.GetBytes(Response));
+            }
+        }
+
+        static string SetCommandClient(string Command)
+        {
+            if (Command == "/token")
+            {
+                if (AllClients.Count < MaxClient)
+                {
+                    Client newClient = new Client();
+                    AllClients.Add(newClient);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"Новое подключение клиента: {newClient.Token}");
+
+                    return newClient.Token;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("На сервере лицензий недостаточно места");
+                    return "/limit";
+                }
+            }
+            else
+            {
+                Client Client = AllClients.Find(x => x.Token == Command);
+                return Client != null ? "/connect" : "/disconnect";
+            }
+        }
+
         static void DisconnectServer(string command)
         {
             try
             {
-                string Token = command.Replace("/disconnect", "");
+                string Token = command.Replace("/disconnect", "").Trim();
                 Client DisconnectClient = AllClients.Find(x => x.Token == Token);
                 AllClients.Remove(DisconnectClient);
 
