@@ -201,6 +201,8 @@ namespace Server
                 Console.Write("Срок действия токена: ");
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine(Duration.ToString());
+
+                Console.Write(Path);
             }
             else
             {
