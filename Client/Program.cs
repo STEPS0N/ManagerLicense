@@ -34,6 +34,14 @@ namespace Client
             else if (Command == "/help") Help();
         }
 
+        static void GetStatus()
+        {
+            int Duration = (int)DateTime.Now.Subtract(ClientDateTimeConnection).TotalSeconds;
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"Client: {ClientToken}, time connection: {ClientDateTimeConnection.ToString("HH:mm:ss dd.MM")}, " + 
+                $"duration: {Duration}");
+        }
+
         static void Help()
         {
             Console.ForegroundColor = ConsoleColor.White;
