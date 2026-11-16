@@ -42,6 +42,8 @@ namespace Server
                         Console.WriteLine($"Клиент: {AllClients[iClient].Token} отключился от сервера из-за тайм-аута");
                     }
                 }
+
+                Thread.Sleep(1000);
             }
         }
 
@@ -118,7 +120,7 @@ namespace Server
         {
             try
             {
-                string Token = command.Replace("/disconnect", "").Trim();
+                string Token = command.Replace("/disconnect", "");
                 Client DisconnectClient = AllClients.Find(x => x.Token == Token);
                 AllClients.Remove(DisconnectClient);
 
