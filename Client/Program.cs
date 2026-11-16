@@ -1,6 +1,8 @@
 ﻿using System.IO;
 using System;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 namespace Client
 {
@@ -15,6 +17,10 @@ namespace Client
         static void Main(string[] args)
         {
             OnSettings();
+            
+            Thread tCheckToken = new Thread(CheckToken);
+            tCheckToken.Start();
+
             while (true) 
                 SetCommand();
         }
@@ -29,9 +35,94 @@ namespace Client
                 File.Delete(Directory.GetCurrentDirectory() + "/.config");
                 OnSettings();
             }
-            else if (Command == "/connect") ;
+            else if (Command == "/connect") ConnectServer();
             else if (Command == "/status") GetStatus();
             else if (Command == "/help") Help();
+        }
+
+        static void ConnectServer()
+        {
+            IPEndPoint EndPoint = new IPEndPoint(ServerIpAddress, ServerPort);
+            Socket Socket = new Socket(AddressFamily.InterNetwork,
+                SocketType.Stream,
+                ProtocolType.Tcp);
+
+            try
+            {
+                Socket.Connect(EndPoint);
+            }
+            catch (Exception ex) 
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error: " + ex.Message);
+            }
+
+            if (Socket.Connected)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Connection to server successful");
+
+                Socket.Send(Encoding.UTF8.GetBytes("/token"));
+
+                byte[] Bytes = new byte[10485760];
+                int ByteRec = Socket.Receive(Bytes);
+
+                string Response = Encoding.UTF8.GetString(Bytes, 0, ByteRec);
+                if (Response == "/limit")
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("There is not enough space on the license server");
+                }
+                else
+                {
+                    ClientToken = Response;
+                    ClientDateTimeConnection = DateTime.Now;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Recieved connection token: " + ClientToken);
+                }
+            }
+        }
+
+        static void CheckToken()
+        {
+            while (true)
+            {
+                if (ClientToken != "")
+                {
+                    IPEndPoint EndPoint = new IPEndPoint(ServerIpAddress, ServerPort);
+                    Socket Socket = new Socket(AddressFamily.InterNetwork,
+                        SocketType.Stream,
+                        ProtocolType.Tcp);
+
+                    try
+                    {
+                        Socket.Connect(EndPoint);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Error: " + ex.Message);
+                    }
+
+                    if (Socket.Connected)
+                    {
+                        Socket.Send(Encoding.UTF8.GetBytes(ClientToken));
+
+                        byte[] Bytes = new byte[10485760];
+                        int ByteRec = Socket.Receive(Bytes);
+
+                        string Response = Encoding.UTF8.GetString(Bytes, 0, ByteRec);
+                        if (Response == "/disconnect")
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("The client is disconnected from the server");
+                            ClientToken = String.Empty;
+                        }
+                    }
+                }
+
+                Thread.Sleep(1000);
+            }
         }
 
         static void GetStatus()
