@@ -10,6 +10,7 @@ namespace Client
     {
         static IPAddress ServerIpAddress;
         static int ServerPort = 0;
+        static string ClientName;
 
         static string ClientToken;
         static DateTime ClientDateTimeConnection;
@@ -59,10 +60,7 @@ namespace Client
 
             if (Socket.Connected)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("Connection to server successful");
-
-                Socket.Send(Encoding.UTF8.GetBytes("/token"));
+                Socket.Send(Encoding.UTF8.GetBytes("/token " + ClientName));
 
                 byte[] Bytes = new byte[10485760];
                 int ByteRec = Socket.Receive(Bytes);
@@ -73,8 +71,15 @@ namespace Client
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("There is not enough space on the license server");
                 }
+                else if (Response == "/blacklisted")
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Клиент находится в чёрном списке");
+                }
                 else
                 {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Connection to server successful");
                     ClientToken = Response;
                     ClientDateTimeConnection = DateTime.Now;
                     Console.ForegroundColor = ConsoleColor.Red;
@@ -129,7 +134,7 @@ namespace Client
         {
             int Duration = (int)DateTime.Now.Subtract(ClientDateTimeConnection).TotalSeconds;
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine($"Client: {ClientToken}, time connection: {ClientDateTimeConnection.ToString("HH:mm:ss dd.MM")}, " + 
+            Console.WriteLine($"Client: {ClientName} ({ClientToken}), time connection: {ClientDateTimeConnection.ToString("HH:mm:ss dd.MM")}, " + 
                 $"duration: {Duration}");
         }
 
@@ -165,6 +170,7 @@ namespace Client
                 IpAddress = streamReader.ReadLine();
                 ServerIpAddress = IPAddress.Parse(IpAddress);
                 ServerPort = int.Parse(streamReader.ReadLine());
+                ClientName = streamReader.ReadLine();
                 streamReader.Close();
 
                 Console.ForegroundColor = ConsoleColor.White;
@@ -176,6 +182,11 @@ namespace Client
                 Console.Write("Server port: ");
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine(ServerPort.ToString());
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("Сlient name: ");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(ClientName.ToString());
             }
             else
             {
@@ -190,9 +201,15 @@ namespace Client
                 Console.ForegroundColor = ConsoleColor.Green;
                 ServerPort = int.Parse(Console.ReadLine());
 
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("Please enter your client name: ");
+                Console.ForegroundColor = ConsoleColor.Green;
+                ClientName = Console.ReadLine();
+
                 StreamWriter streamWriter = new StreamWriter(Path);
                 streamWriter.WriteLine(IpAddress); 
                 streamWriter.WriteLine(ServerPort.ToString());
+                streamWriter.WriteLine(ClientName);
                 streamWriter.Close();
             }
 

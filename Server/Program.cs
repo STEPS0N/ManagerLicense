@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Server
 {
@@ -13,6 +14,7 @@ namespace Server
         static int MaxClient;
         static int Duration;
         static List<Client> AllClients = new List<Client>();
+        static List<string> BlackList = new List<string>();
 
         static void Main(string[] args)
         {
@@ -40,10 +42,39 @@ namespace Server
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine($"Клиент: {AllClients[iClient].Token} отключился от сервера из-за тайм-аута");
+                        AllClients.RemoveAt(iClient);
                     }
                 }
 
                 Thread.Sleep(1000);
+            }
+        }
+
+        static void BlackListClient(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Укажите имя клиента: /blacklist NAME");
+                return;
+            }
+
+            if (BlackList.Contains(name))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Клиент '{name}' уже в чёрном списке");
+                return;
+            }
+
+            BlackList.Add(name);
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Клиент '{name}' добавлен в чёрный список");
+
+            int Removed = AllClients.RemoveAll(x => x.Name == name);
+            if (Removed > 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Отключено активных сессий: {Removed}");
             }
         }
 
@@ -59,6 +90,8 @@ namespace Server
             }
             else if (Command.Contains("/disconnect"))
                 DisconnectServer(Command);
+            else if (Command.StartsWith("/blacklist "))
+                BlackListClient(Command.Replace("/blacklist ", "").Trim());
             else if (Command == "/status")
                 GetStatus();
             else if (Command == "/help")
@@ -91,14 +124,24 @@ namespace Server
 
         static string SetCommandClient(string Command)
         {
-            if (Command == "/token")
+            if (Command.StartsWith("/token"))
             {
+                string clientName = Command.Replace("/token", "").Trim();
+
+                if (BlackList.Contains(clientName))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Отказ: клиент '{clientName}' в чёрном списке");
+                    return "/blacklisted";
+                }
+
                 if (AllClients.Count < MaxClient)
                 {
                     Client newClient = new Client();
+                    newClient.Name = clientName;
                     AllClients.Add(newClient);
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"Новое подключение клиента: {newClient.Token}");
+                    Console.WriteLine($"Новое подключение клиента: {newClient.Token} (имя: {clientName})");
 
                     return newClient.Token;
                 }
@@ -120,7 +163,7 @@ namespace Server
         {
             try
             {
-                string Token = command.Replace("/disconnect", "");
+                string Token = command.Replace("/disconnect", "").Trim();
                 Client DisconnectClient = AllClients.Find(x => x.Token == Token);
                 AllClients.Remove(DisconnectClient);
 
@@ -138,6 +181,7 @@ namespace Server
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Количество клиентов: {AllClients.Count}");
+            Console.WriteLine($"В чёрном списке: {BlackList.Count}");
 
             foreach (Client Client in AllClients)
             {
@@ -162,6 +206,11 @@ namespace Server
             Console.Write("/disconnect");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(" - отключить пользователей от сервера");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/blacklist");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(" - добавить клиента в чёрный список");
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write("/status");

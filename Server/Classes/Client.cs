@@ -9,6 +9,7 @@ namespace Server.Classes
     public class Client
     {
         public string Token { get; set; }
+        public string Name { get; set; }
         public DateTime DataConnect { get; set; }
 
         public Client()
